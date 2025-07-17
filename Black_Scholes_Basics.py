@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import yfinance as yf
 import datetime as dt
 import re
+import math
 
 # Look into the basics of theoretical option pricing
 
@@ -84,3 +85,56 @@ def black_scholes_implied_volatility(S, K, T, r, C):
         C_BS = black_scholes_call(S, K, T, r, sigma)
         iterations += 1
     return sigma
+
+# Plot the implied volatility for a S/K ratio and time to expiration
+def black_scholes_implied_volatility_plot(ticker):
+
+    # Get a list of all the expiration dates
+    stock = yf.Ticker(ticker)
+    expiration = stock.options
+
+    # Get the current stock price
+    stock_price = stock.history(period="max")['Close'].iloc[-1]
+
+    data = {}
+    
+    sks = []
+    ttes = []
+
+    for exp in expiration:
+        option_chain = stock.option_chain(exp)
+        tte = (dt.datetime.strptime(exp, '%Y-%m-%d') - dt.datetime.now()).days / 252
+        if tte not in ttes:
+            ttes.append(tte)
+
+        # Get the implied volatility for each option
+        for option in option_chain.calls.itertuples():
+            iv = black_scholes_implied_volatility(stock_price, option.strike, tte, ANNUAL_INTEREST_RATE, option.lastPrice)
+            if option.strike not in sks:
+                sks.append(round(stock_price / option.strike, 2))
+            
+            data[(round(stock_price / option.strike, 2), tte)] = iv
+
+    sklist = []
+    ttelist = []
+    ivlist = []
+
+    for sk in sks:
+        for tte in ttes:
+            if (sk, tte) not in data.keys():
+                data[(sk, tte)] = 0
+            sklist.append(np.log(sk))
+            ttelist.append(np.log(tte))
+            ivlist.append(data[(sk, tte)])
+
+
+    # Plot the implied volatility for a S/K ratio and time to expiration
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(sklist, ttelist, ivlist, c=ivlist, cmap='viridis')
+    ax.set_xlabel('S/K Ratio')
+    ax.set_ylabel('Time to Expiration')
+    ax.set_zlabel('Implied Volatility')
+    ax.set_title('Implied Volatility for ' + ticker)
+
+    plt.show()
