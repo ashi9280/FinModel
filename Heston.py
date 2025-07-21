@@ -61,11 +61,3 @@ def heston_model(S0, kappa, v0, theta, rho, sigma, r, T, dt, num_paths=1):
 #     plt.plot(v[i,:], alpha=0.5)
 # plt.plot(vavg)
 # plt.show()
-
-
-
-
-
-
-
-
